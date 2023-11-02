@@ -28,6 +28,8 @@ Z_AXIS = np.array([0,0,1])
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Fourier Series')
+pygame.font.init()
+font = pygame.font.SysFont('didot.ttc', 72)
 CLOCK = pygame.time.Clock()
 
 # Classes -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -35,6 +37,7 @@ class line () :
     
     circles = [] # init array for each corresponding circle that matches with the vector line
     points = [] # init array for each point that hits the drawing line
+    slowing = 1
     
     def __init__(self,position : list, radius_list : list, starting_angles : list , frequencies : list) :
         self.frequencies = frequencies
@@ -75,7 +78,7 @@ class line () :
         
         if old_length != len(line.points) : # shift all drawing points by pi/4 rad
             for i in range(len(line.points)) :
-                line.points[i][0] = line.points[i][0] + 90 * np.pi/(180*1)
+                line.points[i][0] = line.points[i][0] + 90 * np.pi/(180*line.slowing)
             
 
         if len(line.points) >= 2: # gatekeep lines as it requires multiple points before drawing
@@ -94,7 +97,7 @@ class line () :
         
         for i,angle in enumerate(self.starting_angles) :
             
-            self.starting_angles[i] = self.starting_angles[i] - self.frequencies[i] * np.pi/(180*60) # 
+            self.starting_angles[i] = self.starting_angles[i] - self.frequencies[i] * np.pi/(180*60*line.slowing) # 
             
             #self.starting_angles[i] = [angle - self.frequencies[i] * np.pi/(180*60) for angle in self.starting_angles]
         
@@ -107,6 +110,24 @@ class circle() :
         pygame.gfxdraw.aacircle(WINDOW,int(self.position[0]),int(self.position[1]),int(self.radius),PURPLE)
         pass
     
+class text() :
+    
+    texts = []
+    images = []
+    
+    def __init__(self,position : list, size : float, padding : int, message : str) :
+        self.position = position
+        self.message = message
+        self.img = font.render(self.message, True, PURPLE)
+        self.size = size
+        self.padding = 10
+        
+    def draw(self) : 
+        WINDOW.blit(self.img,self.position)
+        
+    def clock(self,time) :
+        pass
+        
 
 
 # Main --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -118,7 +139,7 @@ def main() :
     SPEED=1
     running = True
     
-
+    t1 = text([40,40],10,10,'test')
 
     a_theta = [360] * LIMIT
     a_theta = [(x * ((2*i)+1))/SPEED for i,x in enumerate(a_theta)]
@@ -129,8 +150,8 @@ def main() :
     
     # sin waves cover a cycle in 1 second, meaning 360/60 6 degrees per frame.
     
-    obj = line([WIDTH/4,HEIGHT/2],a_radius,[0]*LIMIT,a_theta)
-    
+    #obj = line([WIDTH/4,HEIGHT/2],a_radius,[0]*LIMIT,a_theta)
+    obj = line([WIDTH/4,HEIGHT/2],[25,10,5,2],[0]*4,[360,720,45,90])
     
     while running :
 
@@ -156,8 +177,9 @@ def main() :
         WINDOW.fill(DIM_GRAY)
         pygame.draw.aaline(WINDOW,PURPLE,(WIDTH/2,0),(WIDTH/2,HEIGHT))
         current_time = now.strftime("%H:%M:%S")
-        #print("Current Time =", current_time)
+        t2 = text([40,40],10,10,current_time)
         obj.draw()
+        t2.draw()
         
             
 
