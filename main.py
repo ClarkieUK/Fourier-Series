@@ -58,19 +58,28 @@ class line () :
             for c in line.circles :
                 c.draw() # draw each circle for each vector line
             
-            pygame.draw.aaline(WINDOW,PURPLE,starting_position,(starting_position[0]+r*np.cos(self.starting_angles[i]),starting_position[1]+r*np.sin(self.starting_angles[i])))
-            # draw the vector line from the recurrant start position to the end position, which calculated through start_recurring = r_i * cos(theta_i)
+            RE = r * np.cos(self.starting_angles[i])
+            IM = r * np.sin(self.starting_angles[i])
+            
+            pygame.draw.aaline(WINDOW,PURPLE,starting_position,(starting_position[0]+RE,starting_position[1]+IM))
             
             for c in line.circles :
                 line.circles.pop() # pop the first drawn circles to stop overlap
-        
-            starting_position = [starting_position[0] + r * np.cos(self.starting_angles[i]), starting_position[1] + r * np.sin(self.starting_angles[i])]
+            
+            starting_position = [starting_position[0] + RE, starting_position[1] + IM]
+            
             # update the start position along the 'journey' of radii through till the i'th vectorline , after the first iteration the new start position is essentially the tip of 
             # first circle, then on the second it would be the tip of the second circle, etc...
         
+        
         difference = WIDTH/2 - starting_position[0] # calculate the difference between the endpoint and the middle line for drawing
         
-        pygame.draw.aaline(WINDOW,PURPLE,starting_position,(starting_position[0]+difference,starting_position[1])) # draw that connection line to the mid point
+        pygame.draw.aaline(
+            WINDOW,
+            PURPLE,
+            starting_position,
+            (starting_position[0]+difference,starting_position[1])
+            ) # draw that connection line to the mid point
         
         old_length = len(line.points) # get how many points are inside the array ready for drawing
         
@@ -78,40 +87,39 @@ class line () :
         
         if old_length != len(line.points) : # shift all drawing points by pi/4 rad
             for i in range(len(line.points)) :
-                line.points[i][0] = line.points[i][0] + 90 * np.pi/(180*line.slowing)
+                line.points[i][0] = line.points[i][0] + 360 * np.pi/(180*2*line.slowing)
             
-
         if len(line.points) >= 2: # gatekeep lines as it requires multiple points before drawing
             pygame.draw.lines(WINDOW,PURPLE,False,line.points)
 
         if len(line.points) > 500 : # remove first drawn points as they will be off screen and sucking performance
             _, *line.points = line.points
         
-        
-        
-        #self.end_positon = [self.position[0] + self.radius * np.cos(self.starting_angles),self.position[1] + self.radius * np.sin(self.starting_angles)] 
-        
-        #pygame.draw.aaline(WINDOW,PURPLE,self.position,self.end_positon)
-        
     def move(self) -> None :
-        
+
         for i,angle in enumerate(self.starting_angles) :
             
-            self.starting_angles[i] = self.starting_angles[i] - self.frequencies[i] * np.pi/(180*60*line.slowing) # 
-            
-            #self.starting_angles[i] = [angle - self.frequencies[i] * np.pi/(180*60) for angle in self.starting_angles]
+            self.starting_angles[i] = self.starting_angles[i] - ((self.frequencies[i]) * np.pi/(180*FPS*line.slowing)) # 
+        # Ae^{iw}
         
 class circle() :
+    
     def __init__(self,position : list, radius : int) :
         self.position = position
         self.radius = radius
     
     def draw(self) -> None :
-        pygame.gfxdraw.aacircle(WINDOW,int(self.position[0]),int(self.position[1]),int(self.radius),PURPLE)
-        pass
+
+        pygame.gfxdraw.aacircle(
+            WINDOW,
+            int(self.position[0]),
+            int(self.position[1]),
+            int(self.radius),
+            PURPLE
+        )
+
     
-class text() :
-    
+class text() : 
     texts = []
     images = []
     
@@ -124,35 +132,26 @@ class text() :
         
     def draw(self) : 
         WINDOW.blit(self.img,self.position)
-        
-    def clock(self,time) :
-        pass
-        
-
-
+    
 # Main --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 def main() :
-    
-    x = 0 
+
     SCALE = 80
-    LIMIT = 250
-    SPEED=1
+    LIMIT = 10
     running = True
-    
-    t1 = text([40,40],10,10,'test')
 
-    a_theta = [360] * LIMIT
-    a_theta = [(x * ((2*i)+1))/SPEED for i,x in enumerate(a_theta)]
+    box_theta = [360] * LIMIT
+    box_theta = [x * (2*(n+1)-1) for n,x in enumerate(box_theta)]
     
-    a_radius = [4*SCALE/np.pi] * LIMIT
-    a_radius = [x*1/((2*i)+1) for i,x in enumerate(a_radius)]
+    box_radius = [4/np.pi] * LIMIT
+    box_radius = [SCALE/2 * x * 1/(2*(n+1)-1) for n,x in enumerate(box_radius)]
+    
+    obj = line([WIDTH/4,HEIGHT/2],
+               box_radius,
+               [np.pi/2]*int(LIMIT),
+               box_theta
+               )
 
-    
-    # sin waves cover a cycle in 1 second, meaning 360/60 6 degrees per frame.
-    
-    #obj = line([WIDTH/4,HEIGHT/2],a_radius,[0]*LIMIT,a_theta)
-    obj = line([WIDTH/4,HEIGHT/2],[25,10,5,2],[0]*4,[360,720,45,90])
-    
     while running :
 
         CLOCK.tick(FPS)
@@ -175,16 +174,15 @@ def main() :
         
         # Render
         WINDOW.fill(DIM_GRAY)
+    
         pygame.draw.aaline(WINDOW,PURPLE,(WIDTH/2,0),(WIDTH/2,HEIGHT))
+        
         current_time = now.strftime("%H:%M:%S")
         t2 = text([40,40],10,10,current_time)
-        obj.draw()
         t2.draw()
+        obj.draw()
         
-            
-
     return 0
-
 
 if __name__ == '__main__' :
     main()
