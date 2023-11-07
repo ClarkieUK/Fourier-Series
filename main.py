@@ -27,41 +27,59 @@ Y_AXIS = np.array([0,1,0])
 Z_AXIS = np.array([0,0,1])
 
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
+intermediate_surface = pygame.Surface(WINDOW.get_size())
+
 pygame.display.set_caption('Fourier Series')
 pygame.font.init()
 font = pygame.font.SysFont('didot.ttc', 72)
 CLOCK = pygame.time.Clock()
+
+
 
 # Classes -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 class line () :
     
     circles = [] # init array for each corresponding circle that matches with the vector line
     points = [] # init array for each point that hits the drawing line
-    slowing = 1
+    slowing = 3
     
     def __init__(self,position : list, radius_list : list, starting_angles : list , frequencies : list) :
         self.frequencies = frequencies
         self.starting_angles = starting_angles
         self.position = position
-        self.end_positon = []
+        #self.end_positon = []
         self.radius_list = radius_list
         
+        self.sin_rad = radius_list[0]
+        self.cos_rad = radius_list[1]
+        
+        self.sin_f = frequencies[0]
+        self.cos_f = frequencies[1]
+        
+        self.sin_starting_angles = starting_angles[0]
+        self.cos_starting_angles = starting_angles[1]
+        
+        # shift start location MOVE TO FUNCTION ASAP
+        for i,v in enumerate(self.sin_f) :
+            self.sin_starting_angles[i] = self.sin_starting_angles[i] + self.sin_f[i] * 2
+            self.cos_starting_angles[i] = self.cos_starting_angles[i] + self.cos_f[i] * 2
+              
         
     def draw(self) -> None  : 
         
         starting_position = self.position # Start the path at the passed start position
         
-        for i,r in enumerate(self.radius_list) : 
+        for i,r in enumerate(self.sin_rad) : 
             
-            line.circles.append(circle(starting_position,r)) # create the circle for the vector line i of length len(radius_list)
+            RE = (self.sin_rad[i]*np.cos(self.sin_starting_angles[i]) + self.cos_rad[i] * np.cos(self.cos_starting_angles[i])) * (-1)
+            IM = (self.sin_rad[i]*np.sin(self.sin_starting_angles[i]) + self.cos_rad[i] * np.sin(self.cos_starting_angles[i])) * (-1)
+            
+            line.circles.append(circle(starting_position,np.sqrt((RE)**2+(IM)**2))) # create the circle for the vector line i of length len(radius_list)
             
             for c in line.circles :
                 c.draw() # draw each circle for each vector line
             
-            RE = r * np.cos(self.starting_angles[i])
-            IM = r * np.sin(self.starting_angles[i])
-            
-            pygame.draw.aaline(WINDOW,PURPLE,starting_position,(starting_position[0]+RE,starting_position[1]+IM))
+            pygame.draw.aaline(WINDOW,PURPLE,starting_position,(starting_position[0] + RE,starting_position[1] + IM))
             
             for c in line.circles :
                 line.circles.pop() # pop the first drawn circles to stop overlap
@@ -83,11 +101,13 @@ class line () :
         
         old_length = len(line.points) # get how many points are inside the array ready for drawing
         
+
         line.points.append([starting_position[0]+difference,starting_position[1]]) # append each drawing point
         
         if old_length != len(line.points) : # shift all drawing points by pi/4 rad
             for i in range(len(line.points)) :
-                line.points[i][0] = line.points[i][0] + 360 * np.pi/(180*2*line.slowing)
+                line.points[i][0] = line.points[i][0] + 180 * np.pi/(180*line.slowing)
+
             
         if len(line.points) >= 2: # gatekeep lines as it requires multiple points before drawing
             pygame.draw.lines(WINDOW,PURPLE,False,line.points)
@@ -97,11 +117,13 @@ class line () :
         
     def move(self) -> None :
 
-        for i,angle in enumerate(self.starting_angles) :
+        for i,angle in enumerate(self.sin_starting_angles) :
             
-            self.starting_angles[i] = self.starting_angles[i] - ((self.frequencies[i]) * np.pi/(180*FPS*line.slowing)) # 
+            #self.starting_angles[i] = self.starting_angles[i] - ((self.frequencies[i]) * np.pi/(180*FPS*line.slowing)) # 
+            self.sin_starting_angles[i] = self.sin_starting_angles[i] - ((self.sin_f[i]) * np.pi/(180*FPS*line.slowing))
+            self.cos_starting_angles[i] = self.cos_starting_angles[i] - ((self.cos_f[i]) * np.pi/(180*FPS*line.slowing))
         # Ae^{iw}
-        
+
 class circle() :
     
     def __init__(self,position : list, radius : int) :
@@ -118,7 +140,6 @@ class circle() :
             PURPLE
         )
 
-    
 class text() : 
     texts = []
     images = []
@@ -137,7 +158,7 @@ class text() :
 def main() :
 
     SCALE = 80
-    LIMIT = 10
+    LIMIT = 100
     running = True
 
     box_theta = [360] * LIMIT
@@ -145,11 +166,38 @@ def main() :
     
     box_radius = [4/np.pi] * LIMIT
     box_radius = [SCALE/2 * x * 1/(2*(n+1)-1) for n,x in enumerate(box_radius)]
-    
+    """
     obj = line([WIDTH/4,HEIGHT/2],
                box_radius,
-               [np.pi/2]*int(LIMIT),
+               [np.pi]*int(LIMIT),
                box_theta
+               )
+               
+    """
+    sin_theta = [360] * LIMIT
+    cos_theta = [360] * LIMIT
+    
+    sin_theta = [x * ((n+1))  for n,x in enumerate(sin_theta)]
+    cos_theta = [x * (2*(n+1)) for n,x in enumerate(cos_theta)]
+    
+    thetas = [sin_theta,cos_theta]
+    #thetas = [sin_theta,[0]*LIMIT]
+    
+    sin_rad = [1] * LIMIT
+    sin_rad = [SCALE* x * 1/(n+1) for n,x in enumerate(sin_rad)]
+    
+    cos_rad = [1] * LIMIT
+    cos_rad = [SCALE * x * 1/(4*(n+1)**2-1) for n,x in enumerate(cos_rad)]
+
+    radii = [sin_rad,cos_rad]
+    #radii = [sin_rad,[0]*LIMIT]
+
+    starting_angles = [[0]*LIMIT,[np.pi/2]*LIMIT]
+    
+    obj = line([WIDTH/4,HEIGHT/2],
+               radii,
+               starting_angles,
+               thetas
                )
 
     while running :
@@ -166,6 +214,9 @@ def main() :
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False   
+                if event.key == pygame.K_r :
+                    running = False
+                    main()
 
         # Update   
         now = datetime.now()
@@ -181,6 +232,10 @@ def main() :
         t2 = text([40,40],10,10,current_time)
         t2.draw()
         obj.draw()
+        
+        
+        #WINDOW.blit(pygame.transform.flip(WINDOW, 0, True), (0,0))
+        
         
     return 0
 
