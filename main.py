@@ -36,16 +36,31 @@ CLOCK = pygame.time.Clock()
 # Functions ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 def fourier(limit : int, scale : int, sine : bool, cosine : bool) :
         
+        # 1/pi * (-pi -> pi)int{f(x)sin(nx)dx} for odd
+        # 1/pi * (-pi -> pi)int{f(x)cos(nx)dx} for even
+        
         cos_coeffs = []
         sin_coeffs = []
         cos_frequenciesrequencies = []
         sin_frequenciesrequencies = []
         
         for n in range(1,limit+1) :
-            cos_frequenciesrequencies.append(360*2*n)
-            sin_frequenciesrequencies.append(360*n)
-            cos_coeffs.append(scale * 1/(4*n**2-1))
-            sin_coeffs.append(scale * 1/n)
+            
+            # cos(2n*x) * 1/(4n^2-1)    +   sin(n*x) * 1/n
+            
+            cos_frequenciesrequencies.append(360*2*
+                                             n)
+            
+            sin_frequenciesrequencies.append(360*
+                                             n # series
+                )
+            
+            cos_coeffs.append(scale * 
+                              1/(4*n**2-1) # series
+                              )
+            sin_coeffs.append(scale * 
+                              (-1)* ((-1)**n)/n # series
+                              )
             
         if sine and cosine :
             data = [
@@ -198,7 +213,7 @@ def main() :
     running = True
     tracing = False
 
-    data = fourier(1000,80,True,True)
+    data = fourier(1000,50,True,False)
     
     obj = line([WIDTH/4,HEIGHT/2],
                data[0],
