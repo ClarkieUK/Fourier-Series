@@ -2,6 +2,10 @@ import pygame
 from pygame import gfxdraw
 import numpy as np
 from datetime import datetime
+import scipy.integrate as spi
+from numpy import pi
+from numpy import cos
+from numpy import sin
 
 # Setup Constants ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 WHITE = [255, 255, 255]
@@ -30,7 +34,7 @@ intermediate_surface = pygame.Surface(WINDOW.get_size())
 
 pygame.display.set_caption('Fourier Series')
 pygame.font.init()
-font = pygame.font.SysFont('didot.ttc', 72)
+font = pygame.font.SysFont('didot.ttc', 36)
 CLOCK = pygame.time.Clock()
 
 # Functions ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
@@ -48,7 +52,7 @@ def fourier(limit : int, scale : int, sine : bool, cosine : bool) :
             
             # cos(2n*x) * 1/(4n^2-1)    +   sin(n*x) * 1/n
             
-            cos_frequenciesrequencies.append(360*2*
+            cos_frequenciesrequencies.append(360*
                                              n)
             
             sin_frequenciesrequencies.append(360*
@@ -56,10 +60,10 @@ def fourier(limit : int, scale : int, sine : bool, cosine : bool) :
                 )
             
             cos_coeffs.append(scale * 
-                              1/(4*n**2-1) # series
+                              2*(-1)**n*(-pi**2*n**2+6)/n**3 # series
                               )
             sin_coeffs.append(scale * 
-                              (-1)* ((-1)**n)/n # series
+                              (-2*pi**2*cos(pi*n)/(3*n) + 2*pi*sin(pi*n)/n**2 + 4*cos(pi*n)/n**3 - 4*sin(pi*n)/(pi*n**4)) # series
                               )
             
         if sine and cosine :
@@ -92,7 +96,7 @@ class line () :
     circles = [] # init array for each corresponding circle that matches with the vector line
     points = [] # init array for each point that hits the drawing line
     trace = []
-    slowing = 3
+    slowing = 1
     
     def __init__(self,position : list, coefficients : list, frequencies : list, theta : list) :
         self.position = position
@@ -150,10 +154,11 @@ class line () :
     
         line.points.append([starting_position[0]+difference,starting_position[1]]) # append each drawing point
         
-        line.trace.append([starting_position[0]+WIDTH/4,starting_position[1]])
+        line.trace.append([starting_position[0],starting_position[1]])
         
+        # + WIDTH / 4
         if tracing and len(line.trace) > 1:
-            pygame.draw.lines(WINDOW,RED,False,line.trace)
+            pygame.draw.aalines(WINDOW,RED,False,line.trace)
         
         if old_length != len(line.points) : # shift all drawing points by pi/4 rad
             for i in range(len(line.points)) :
@@ -207,13 +212,90 @@ class text() :
     def draw(self,surface) : 
         surface.blit(self.img,self.position)
     
+# make array of buttons that measures length from top right to easily add new buttons
+    
+class Button() :
+    
+    buttons = []
+    ## NEED TO FINISH PADDING LOGIC - GOOD LUCK SOLDIER!
+    i = 0
+    def __init__(self,text,color : list,width,height,pos,depth) :
+        # Logic
+        self.clicked = False
+        self.logged_click_position = False
+        self.depth = depth
+        self.origin = pos
+        self.loose_origin = pos
+        self.color = color
+        
+        # Top Rectangle
+        self.top_rectangle = pygame.Rect((self.loose_origin),(width,height))
+        self.top_color = color
+        
+        # Bottom Rectangle
+        self.bottom_rectangle = pygame.Rect((pos[0],pos[1]+self.depth),(width,height))
+        self.bottom_color = [x - 10 for x in color]
+        
+        # Text
+        self.text_surface = font.render(text,1,'#FFFFFF')
+        self.text_rectangle = self.text_surface.get_rect(center = self.top_rectangle.center)
+
+        Button.buttons.append(self)
+
+    def draw(self,surface) :
+        
+        pygame.draw.rect(surface,self.bottom_color,self.bottom_rectangle,border_radius=12)
+        pygame.draw.rect(surface,self.top_color,self.top_rectangle,border_radius=12)
+        surface.blit(self.text_surface,self.text_rectangle)
+        
+        
+        
+    def update(self) :
+        
+        mouse_position = pygame.mouse.get_pos()
+        
+        if self.top_rectangle.collidepoint(mouse_position) :
+            self.top_color = [x + 20 for x in self.color]
+        else :
+            self.top_color = self.color
+            x,y = self.origin
+            self.top_rectangle[1] = y 
+            self.text_rectangle = self.text_surface.get_rect(center = self.top_rectangle.center)
+        
+        if pygame.mouse.get_pressed()[0] :
+            if not self.logged_click_position :
+                self.clicked_initial_position = pygame.mouse.get_pos()
+                self.logged_click_position = True
+
+
+            if self.top_rectangle.collidepoint(mouse_position) and self.top_rectangle.collidepoint(self.clicked_initial_position) :      
+                
+                if pygame.mouse.get_pressed()[0] and self.clicked == False : 
+                    self.clicked = True
+                    self.top_rectangle[1] += (self.depth)/2
+                    self.text_rectangle[1] += (self.depth)/2
+
+                    print(f'{Button.i}clicked')
+                    Button.i +=1
+
+            
+        if not pygame.mouse.get_pressed()[0] :
+            self.logged_click_position = False
+            self.clicked = False   
+            x,y = self.origin
+            self.top_rectangle[1] = y 
+            self.text_rectangle = self.text_surface.get_rect(center = self.top_rectangle.center)
+       
+        
+        
+        
 # Main --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 def main() :
 
     running = True
     tracing = False
 
-    data = fourier(1000,50,True,False)
+    data = fourier(1000,10,True,False)
     
     obj = line([WIDTH/4,HEIGHT/2],
                data[0],
@@ -221,12 +303,11 @@ def main() :
                data[2]
                )
 
+    test_button = Button('Text',[134, 91, 235],50,40,(WIDTH/2,HEIGHT/2),6)
+
     while running :
 
         CLOCK.tick(FPS)
-
-        mouse_position = pygame.mouse.get_pos()
-        print(mouse_position)
 
         for event in pygame.event.get() :
             
@@ -249,6 +330,7 @@ def main() :
         current_time = now.strftime("%H:%M:%S")
         obj.move()
         pygame.display.update()
+        test_button.update()
         
         # Render
         WINDOW.fill(DIM_GRAY)
@@ -263,7 +345,7 @@ def main() :
         t2.draw(WINDOW)
         
         # Buttons
-        
+        test_button.draw(WINDOW)
         
         # Sliders
         
