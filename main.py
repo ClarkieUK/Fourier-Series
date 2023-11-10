@@ -24,6 +24,8 @@ BROWN = [222,184,135]
 WIDTH = 1080
 HEIGHT = 720
 FPS = 60
+RESOLUTION = 10
+SCALE = 20
 
 X_AXIS = np.array([1,0,0])
 Y_AXIS = np.array([0,1,0])
@@ -60,10 +62,10 @@ def fourier(limit : int, scale : int, sine : bool, cosine : bool) :
                 )
             
             cos_coeffs.append(scale * 
-                              2*(-1)**n*(-pi**2*n**2+6)/n**3 # series
+                              1/(4*n**2-1)# series
                               )
             sin_coeffs.append(scale * 
-                              (-2*pi**2*cos(pi*n)/(3*n) + 2*pi*sin(pi*n)/n**2 + 4*cos(pi*n)/n**3 - 4*sin(pi*n)/(pi*n**4)) # series
+                              1/n# series
                               )
             
         if sine and cosine :
@@ -89,6 +91,27 @@ def fourier(limit : int, scale : int, sine : bool, cosine : bool) :
         
         return data
 
+def init_series(resolution : int,scale : float,sines : bool,cosines :bool) :
+    global obj
+    
+    data = fourier(resolution,scale,sines,cosines)
+    
+    obj = line([WIDTH/4,HEIGHT/2],
+            data[0], # coeffs
+            data[1], # freqs
+            data[2] # starting angles
+            )
+   
+def button_sinx() :
+    init_series(RESOLUTION,SCALE,True,False)
+    
+def button_both() :
+    init_series(RESOLUTION,SCALE,True,True)
+    
+def button_cosx() :
+    init_series(RESOLUTION,SCALE,False,True)
+    
+    
 
 # Classes -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 class line () :
@@ -217,16 +240,29 @@ class text() :
 class Button() :
     
     buttons = []
+    padding = 10
     ## NEED TO FINISH PADDING LOGIC - GOOD LUCK SOLDIER!
     i = 0
-    def __init__(self,text,color : list,width,height,pos,depth) :
+    def __init__(self,text,color : list,width,height,pos,depth,function : callable) :
         # Logic
+        Button.buttons.append(self)
         self.clicked = False
         self.logged_click_position = False
         self.depth = depth
+        self.color = color
+        self.width = width
+        self.function = function
+        
+        total_x_distance = 0
+        
+        for i in range(len(Button.buttons)) :
+            total_x_distance -= (Button.buttons[i].width + (1) * Button.padding)
+            
+        pos[0] += total_x_distance  
+        pos[1] += Button.padding    
+        
         self.origin = pos
         self.loose_origin = pos
-        self.color = color
         
         # Top Rectangle
         self.top_rectangle = pygame.Rect((self.loose_origin),(width,height))
@@ -235,20 +271,16 @@ class Button() :
         # Bottom Rectangle
         self.bottom_rectangle = pygame.Rect((pos[0],pos[1]+self.depth),(width,height))
         self.bottom_color = [x - 10 for x in color]
-        
+    
         # Text
         self.text_surface = font.render(text,1,'#FFFFFF')
         self.text_rectangle = self.text_surface.get_rect(center = self.top_rectangle.center)
-
-        Button.buttons.append(self)
-
+        
     def draw(self,surface) :
         
         pygame.draw.rect(surface,self.bottom_color,self.bottom_rectangle,border_radius=12)
         pygame.draw.rect(surface,self.top_color,self.top_rectangle,border_radius=12)
         surface.blit(self.text_surface,self.text_rectangle)
-        
-        
         
     def update(self) :
         
@@ -267,18 +299,15 @@ class Button() :
                 self.clicked_initial_position = pygame.mouse.get_pos()
                 self.logged_click_position = True
 
-
             if self.top_rectangle.collidepoint(mouse_position) and self.top_rectangle.collidepoint(self.clicked_initial_position) :      
                 
                 if pygame.mouse.get_pressed()[0] and self.clicked == False : 
                     self.clicked = True
                     self.top_rectangle[1] += (self.depth)/2
                     self.text_rectangle[1] += (self.depth)/2
-
-                    print(f'{Button.i}clicked')
-                    Button.i +=1
-
-            
+                    # Do operation
+                    self.function()
+                    
         if not pygame.mouse.get_pressed()[0] :
             self.logged_click_position = False
             self.clicked = False   
@@ -291,19 +320,16 @@ class Button() :
         
 # Main --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 def main() :
-
+    global resolution,scale
+    
     running = True
     tracing = False
-
-    data = fourier(1000,10,True,False)
     
-    obj = line([WIDTH/4,HEIGHT/2],
-               data[0],
-               data[1],
-               data[2]
-               )
-
-    test_button = Button('Text',[134, 91, 235],50,40,(WIDTH/2,HEIGHT/2),6)
+    init_series(RESOLUTION,SCALE,True,True)
+    
+    sine_button = Button('sin(x)',[134, 91, 235],200,40,[WIDTH,0],6,button_sinx)
+    both_button = Button('both!',[134, 91, 235],50,40,[WIDTH,0],6,button_both)
+    cosine_button = Button('cos(x)',[134, 91, 235],200,40,[WIDTH,0],6,button_cosx)
 
     while running :
 
@@ -330,14 +356,14 @@ def main() :
         current_time = now.strftime("%H:%M:%S")
         obj.move()
         pygame.display.update()
-        test_button.update()
+        for button in Button.buttons :
+            button.update()
         
         # Render
         WINDOW.fill(DIM_GRAY)
 
         # Fourier 
         pygame.draw.aaline(WINDOW,PURPLE,(WIDTH/2,0),(WIDTH/2,HEIGHT))
-
         obj.draw(tracing)
         
         # Texts
@@ -345,7 +371,8 @@ def main() :
         t2.draw(WINDOW)
         
         # Buttons
-        test_button.draw(WINDOW)
+        for button in Button.buttons :
+            button.draw(WINDOW) 
         
         # Sliders
         

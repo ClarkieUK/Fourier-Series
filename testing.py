@@ -3,7 +3,7 @@ import sympy as sp
 
 x = sp.symbols('x')
 n = sp.symbols('n')
-f = (1/sp.pi) * 1/3 * x**3 * sp.sin(n*x)
+f = (1/sp.pi) * x**3 * sp.sin(n*x)
 
 lower = -sp.pi
 upper = sp.pi
