@@ -24,8 +24,8 @@ BROWN = [222,184,135]
 WIDTH = 1080
 HEIGHT = 720
 FPS = 60
-RESOLUTION = 10
-SCALE = 20
+RESOLUTION = 1000
+SCALE = 75
 
 X_AXIS = np.array([1,0,0])
 Y_AXIS = np.array([0,1,0])
@@ -53,19 +53,33 @@ def fourier(limit : int, scale : int, sine : bool, cosine : bool) :
         for n in range(1,limit+1) :
             
             # cos(2n*x) * 1/(4n^2-1)    +   sin(n*x) * 1/n
-            
+            """
             cos_frequenciesrequencies.append(360*
-                                             n)
+                                             (2*n-1))
             
             sin_frequenciesrequencies.append(360*
                                              n # series
                 )
             
             cos_coeffs.append(scale * 
+                              1/(2*n-1)# series
+                              )
+            sin_coeffs.append(scale * 
+                              -(-1)**n/(n)# series
+                              )
+            """
+            cos_frequenciesrequencies.append(360*
+                                             n)
+            
+            sin_frequenciesrequencies.append(360*
+                                             (n) # series
+                )
+            
+            cos_coeffs.append(scale * 
                               1/(4*n**2-1)# series
                               )
             sin_coeffs.append(scale * 
-                              1/n# series
+                              -(-1)**n/(n)# series
                               )
             
         if sine and cosine :
@@ -119,7 +133,7 @@ class line () :
     circles = [] # init array for each corresponding circle that matches with the vector line
     points = [] # init array for each point that hits the drawing line
     trace = []
-    slowing = 1
+    slowing = 3
     
     def __init__(self,position : list, coefficients : list, frequencies : list, theta : list) :
         self.position = position
@@ -230,7 +244,7 @@ class text() :
         self.message = message
         self.img = font.render(self.message, True, PURPLE)
         self.size = size
-        self.padding = 10
+        self.padding = padding
         
     def draw(self,surface) : 
         surface.blit(self.img,self.position)
@@ -309,10 +323,9 @@ class Button() :
                     self.function()
                     
         if not pygame.mouse.get_pressed()[0] :
-            self.logged_click_position = False
+            self.logged_click_position = False 
             self.clicked = False   
-            x,y = self.origin
-            self.top_rectangle[1] = y 
+            self.top_rectangle[1] = self.origin[1]
             self.text_rectangle = self.text_surface.get_rect(center = self.top_rectangle.center)
        
         
@@ -327,9 +340,9 @@ def main() :
     
     init_series(RESOLUTION,SCALE,True,True)
     
-    sine_button = Button('sin(x)',[134, 91, 235],200,40,[WIDTH,0],6,button_sinx)
-    both_button = Button('both!',[134, 91, 235],50,40,[WIDTH,0],6,button_both)
-    cosine_button = Button('cos(x)',[134, 91, 235],200,40,[WIDTH,0],6,button_cosx)
+    sine_button = Button('sin(x)',[134, 91, 235],80,40,[WIDTH,0],6,button_sinx)
+    both_button = Button('both!',[134, 91, 235],80,40,[WIDTH,0],6,button_both)
+    cosine_button = Button('cos(x)',[134, 91, 235],80,40,[WIDTH,0],6,button_cosx)
 
     while running :
 
@@ -344,6 +357,9 @@ def main() :
                     running = False      
                 if event.key == pygame.K_r :
                     running = False
+                    Button.buttons = []
+                    line.trace = []
+                    line.points = []
                     main()                
                 if event.key == pygame.K_t :
                     if tracing :
@@ -367,7 +383,7 @@ def main() :
         obj.draw(tracing)
         
         # Texts
-        t2 = text([0,0],10,20,current_time,PURPLE)
+        t2 = text([0,0],10,10,current_time,PURPLE)
         t2.draw(WINDOW)
         
         # Buttons
